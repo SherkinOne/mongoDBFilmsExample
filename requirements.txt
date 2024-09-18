@@ -1,0 +1,9 @@
+Flask
+pymongo[srv]
+Flask-PyMongo
+Flask-Cors
+faker==18.6.0
+jupyter==1.0.0
+jupyter-client==7.4.9
+jupyter-console==6.6.0
+jupyter-core==5.3.1

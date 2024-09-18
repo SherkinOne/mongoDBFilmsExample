@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{film.title}}</title>
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+      <a class="navbar-brand" href="/">My Movie App</a>
+      <button
+        class="navbar-toggler"
+        type="button"
+        data-toggle="collapse"
+        data-target="#navbarNav"
+        aria-controls="navbarNav"
+        aria-expanded="false"
+        aria-label="Toggle navigation"
+      >
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ml-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="/">Home</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="search">Search</a>
+          </li>
+        </ul>
+      </div>
+    </nav>
+    <style>
+      .item-card {
+        margin: 15px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        overflow: hidden;
+        text-align: center;
+      }
+      .item-card img {
+        width: 50%;
+        height: auto;
+      }
+      .item-details {
+        padding: 15px;
+      }
+    </style>
+    <div class="container mt-5">
+      <h1 style="text-align: center">{{ film.title }}</h1>
+      <div class="row">
+        <div class="col-md-6">
+          <img
+            src="{{ film.poster }}"
+            alt="{{ film.title }}"
+            class="img-fluid mb-3"
+          />
+        </div>
+        <div class="col-md-6">
+          <p><strong>Year:</strong> {{ film.year }}</p>
+          <p><strong>Rating:</strong> {{ film.rating }}</p>
+          <p><strong>Genres:</strong> {{ film.genres | join(', ') }}</p>
+          <p><strong>Rated:</strong> {{ film.rated }}</p>
+          <p><strong>Metacritic Score:</strong> {{ film.metacritic }}</p>
+
+          <h5>Plot:</h5>
+          <p>{{ film.plot }}</p>
+
+          <h5>Awards:</h5>
+          <p>
+            {{ film.awards.text }} (Wins: {{ film.awards.wins }}, Nominations:
+            {{ film.awards.nominations }})
+          </p>
+
+          <h5>Cast:</h5>
+          <ul>
+            {% for actor in film.cast %}
+            <li>
+              <a href="/actor/{{ actor }}">{{ actor }}</a>
+            </li>
+            {% endfor %}
+          </ul>
+
+          <h5>Directed by:</h5>
+          <p>{{ film.directors | join(', ') }}</p>
+
+          <h5>Written by:</h5>
+          <p>{{ film.writers | join(', ') }}</p>
+        </div>
+      </div>
+      <div class="row" >
+        <h2>Comments</h2>
+        <ul>
+          {% for comments in film.comments %}
+          <table style="width:100%">
+            <tr>
+              <td style="text-align:left;width: 80%">{{comments.email }}</td>
+              <td style="text-align:right;width: 20%">{{comments.date.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+            </tr>
+            <tr>
+              <td>{{ comments.text }}</td>
+              <td style="text-align:right;width: 20%"> <button> Edit</button></td>
+            </tr>
+          </table>
+          <hr />
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </body>
+</html>
+<!-- Optional JavaScript; choose one of the two! -->
+<!-- Option 1: Bootstrap Bundle with Popper -->
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>

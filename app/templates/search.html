@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Movies</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        .item-card {
+            margin: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .item-card img {
+            width: 100%;
+            height: auto;
+        }
+        .item-details {
+            padding: 15px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <a class="navbar-brand" href="/">My Movie App</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/search">Search</a>
+                </li>
+               
+            </ul>
+        </div>
+    </nav>
+    
+    
+    <div class="container mt-5">
+        <h1 class="text-center">Movies</h1>
+
+        <div class ="row">
+            <select id="genreSelect" class="form-control" onchange="filterMovies()">
+                <option value="">All Genres</option>
+                {% for item in genre %}
+                <option value={{item}}> {{item}}</option>
+                {% endfor %}
+            </select>
+            <select id="yearSelect" class="form-control" onchange="filterMovies()">
+                <option value="">All Years</option>
+                <option value="1999">1999</option>
+            </select>
+        </div>
+
+        <script>
+            function filterMovies() {
+                const selectedGenre = document.getElementById('genreSelect').value;
+                const selectedYear = document.getElementById('yearSelect').value;
+                //TODO - Rebulld this query
+                const url =  `/search?genre=${selectedGenre}&year=${selectedYear}` 
+                window.location.href = url;
+            }
+        </script>
+    
+
+        <div class="row">
+            {% for item in data[0] %}
+                <div class="col-md-3">
+                    <div class="item-card" id={{item._id}} onclick="window.location='{{ url_for('main.film_details', film_id=item._id) }}'" style="cursor: pointer;">
+                        <img src="{{ item.poster }}" alt="{{ item.title }}">
+                        <div class="item-details">
+                            <h5>{{ item.title }}</h5>
+                            <div class="row"><div class="col-6"><button style="float:left" class="btn btn-primary">   {{ item.year }} </button></div><div class="col-6"><button class="btn btn-info" style="float:right"> {{ item.rated }} </button></div></div>
+                            <p style="text-align:center">Rating: {{ item.imdb.rating }}</p>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Optional JavaScript; choose one of the two! -->
+    <!-- Option 1: Bootstrap Bundle with Popper -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+</body>
+</html>
