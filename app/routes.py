@@ -65,20 +65,5 @@ def get_graph_data():
     subjects = []
     scores = []
     results =  get_data_for_graph(selected_value)
-    datasets=[]
-    list_of_genres=get_all_genres()
-    print(list_of_genres)
-    for genre in list_of_genres : 
-        for year_count in range ( 2000 ,2020) :
-            for genre_by_year in results :
-                print(genre_by_year)
-                print(year_count)
-                even_numbers = filter(lambda x: x % 2 == 0, numbers)
-                print(list(even_numbers))  # Output: [2, 4, 6]
-        # datasets.append({
-        #     'label': f'Dataset {idx + 1}', # Label for each dataset
-        #     'data': row['count'],           # Data from the count list
-        #     'backgroundColor': colors[idx % len(colors)] # Cycle through colors
-        # })
-
-    return jsonify(labels=subjects, values=scores)
+  
+    return jsonify(results)

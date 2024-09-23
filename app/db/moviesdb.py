@@ -19,7 +19,8 @@ from bson.errors import InvalidId
 
  
 def get_db():
-    connection_string = "mongodb://localhost:27017/"
+    # connection_string = "mongodb://localhost:27017/"
+    connection_string = "mongodb+srv://admin:t4pwM36QyAe4F9p!@coursecluster.pzjcy.mongodb.net/?retryWrites=true&w=majority&appName=courseCluster"
     db = MongoClient(connection_string).sample_mflix 
     # if 'sample_mflix' not in g:
     #     print("Noit")
@@ -210,7 +211,13 @@ def build_query_sort_project_for_graph(filters):
     if filters:
         if  filters=="genres":
              query = [
-                 {"$match" : {"year" : {"$gte" : 1999}}},{ 
+    {
+        '$match': {
+            'year': {
+                '$gte': 1999
+            }
+        }
+    }, {
         '$unwind': {
             'path': '$genres'
         }
@@ -220,22 +227,64 @@ def build_query_sort_project_for_graph(filters):
                 'year': '$year', 
                 'genre': '$genres'
             }, 
-
             'count': {
                 '$sum': 1
             }
         }
-    },{
-            "$project" : {
-        
-            '_id': 0, 
-            'year': '$_id.year', 
-            'genre': '$_id.genre', 
-            'count': 1
+    }, {
+        '$group': {
+            '_id': '$_id.genre', 
+            'years': {
+                '$push': {
+                    'year': '$_id.year', 
+                    'count': '$count'
+                }
+            }
         }
     }, {
-        "$sort" : { "genre" : 1}
-    }]
+        '$sort': {
+             "_id":  1
+        }
+    }
+]
+        elif filters=="countries" :
+            query = [
+    {
+        '$match': {
+            'year': {
+                '$gte': 1999
+            }
+        }
+    }, {
+        '$unwind': {
+            'path': '$countries'
+        }
+    }, {
+        '$group': {
+            '_id': {
+                'year': '$year', 
+                'country': '$countries'
+            }, 
+            'count': {
+                '$sum': 1
+            }
+        }
+    }, {
+        '$group': {
+            '_id': '$_id.country', 
+            'years': {
+                '$push': {
+                    'year': '$_id.year', 
+                    'count': '$count'
+                }
+            }
+        }
+    }, {
+        '$sort': {
+             "_id": 1
+        }
+    }
+]
         elif "cast" in filters:
             query = {"cast": {"$in": filters["cast"]}}
 
@@ -255,7 +304,7 @@ def build_query_sort_project_for_graph(filters):
 def get_movies(filters, page, movies_per_page):
     """
     Returns a cursor to a list of movie documents.
-
+ 
     Based on the page number and the number of movies per page, the result may
     be skipped and limited.
 
