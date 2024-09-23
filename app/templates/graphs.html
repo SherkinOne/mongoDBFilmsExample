@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Movies</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        .item-card {
+            margin: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .item-card img {
+            width: 100%;
+            height: auto;
+        }
+
+        .item-details {
+            padding: 15px;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <a class="navbar-brand" href="/">My Movie App</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
+            aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/search">Search</a>
+                </li>
+                <li class="nav-item"></li>
+                <a class="nav-link" href="/graphs">Graphs</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <h1>Films since 2000</h1>
+    <label for="dataSelector">Select Category:</label>
+    <select id="dataSelector">
+        <option value="genres" selected>Genres</option>
+        <option value="countries">Category 2</option>
+        <option value="ratings">Category 3</option>
+        <!-- Add more categories as needed -->
+    </select>
+
+    <canvas id="myChart" width="400" height="200"></canvas>
+
+    <script>
+        const ctx = document.getElementById('myChart').getContext('2d');
+        let myChart;
+        document.getElementById('dataSelector').addEventListener('change', function () {
+                const selectedValue = this.value;
+                fetchData(selectedValue);
+            });
+
+
+        function fetchData(selectedValue) {
+            console.log("Chages" ,selectedValue)
+            fetch("/graphdata?category="+selectedValue)
+                // .then(response => response.json())
+                .then(data => {
+                    if (myChart) {
+                        myChart.destroy(); // Destroy previous chart instance
+                    }
+                    console.log(data)
+                    myChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: ['January', 'February', 'March', 'April', 'May'],
+                            datasets: [
+                                {
+                                    label: 'Dataset 1',
+                                    data: [12, 19, 3, 5, 2],
+                                    backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                                },
+                                {
+                                    label: 'Dataset 2',
+                                    data: [2, 3, 20, 5, 1],
+                                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                                },
+                                {
+                                    label: 'Dataset 3',
+                                    data: [3, 10, 13, 15, 22],
+                                    backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            scales: {
+                                x: {
+                                    stacked: true,
+                                },
+                                y: {
+                                    stacked: true,
+                                    beginAtZero: true
+                                }
+                            },
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: 'Stacked Bar Chart Example'
+                                }
+                            }
+                        }
+                    });
+                });
+
+            }
+
+            // Fetch initial data for the default selected option
+            fetchData(document.getElementById('dataSelector').value);
+    </script>
+
+    <!-- Optional JavaScript; choose one of the two! -->
+    <!-- Option 1: Bootstrap Bundle with Popper -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</body>
+
+</html>

@@ -34,25 +34,33 @@
             <li class="nav-item">
                 <a class="nav-link" href="/search">Search</a>
             </li>
-           
+            <li class="nav-item"></li>
+                <a class="nav-link" href="/graphs">Graphs</a>
+            </li>
         </ul>
     </div>
 </nav>
     <div class="container mt-5">
-        <h1 class="text-center">Movies</h1>
+        <h1 class="text-center">{{actor_name}}</h1>
         <div class="row">
-            {% for item in data[0] %}
-                <div class="col-md-3">
-                    <div class="item-card" id={{item._id}} onclick="window.location='{{ url_for('main.film_details', film_id=item._id) }}'" style="cursor: pointer;">
-                        <img src="{{ item.poster }}" alt="{{ item.title }}">
-                        <div class="item-details">
-                            <h5>{{ item.title }}</h5>
-                            <div class="row"><div class="col-6"><button style="float:left" class="btn btn-primary">   {{ item.year }} </button></div><div class="col-6"><button class="btn btn-info" style="float:right"> {{ item.rated }} </button></div></div>
-                            <p style="text-align:center">Rating: {{ item.imdb.rating }}</p>
-                        </div>
-                    </div>
-                </div>
-            {% endfor %}
+            <table style="width:100%">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Year</th>
+                        <th>Rated</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in data %}
+                        <tr>
+                            <td>{{ item.title }}</td>
+                            <td>{{ item.year }}</td>
+                            <td>{{ item.rated }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>    
         </div>
     </div>
 

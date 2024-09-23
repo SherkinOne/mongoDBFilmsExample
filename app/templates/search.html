@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,19 +13,23 @@
             border-radius: 5px;
             overflow: hidden;
         }
+
         .item-card img {
             width: 100%;
             height: auto;
         }
+
         .item-details {
             padding: 15px;
         }
     </style>
 </head>
+
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <a class="navbar-brand" href="/">My Movie App</a>
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
+            aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
@@ -35,51 +40,99 @@
                 <li class="nav-item">
                     <a class="nav-link" href="/search">Search</a>
                 </li>
-               
+                <li class="nav-item"></li>
+                    <a class="nav-link" href="/graphs">Graphs</a>
+                </li>
             </ul>
         </div>
     </nav>
-    
-    
+
+
     <div class="container mt-5">
         <h1 class="text-center">Movies</h1>
 
-        <div class ="row">
-            <select id="genreSelect" class="form-control" onchange="filterMovies()">
-                <option value="">All Genres</option>
-                {% for item in genre %}
-                <option value={{item}}> {{item}}</option>
-                {% endfor %}
-            </select>
-            <select id="yearSelect" class="form-control" onchange="filterMovies()">
-                <option value="">All Years</option>
-                <option value="1999">1999</option>
-            </select>
-        </div>
+        <div class="row">
 
+            <div class="col-sm-4">
+                <select id="genreSelect" class="form-control" onchange="filterMovies()">
+                    <option value="">All Genres</option>
+                    {% for item in genres %}
+                    <!-- <option value="{{ item }}">{{ item }}</option> -->
+                    <option value="{{ item }}" {% if item == filters[0] %}selected{% endif %}>{{ item }}</option>
+                    {% endfor %}
+                </select>
+
+                <!-- <script>
+                    document.addEventListener('DOMContentLoaded', function () {
+                        fetch('/getAllGenres') // Replace with your API endpoint
+                            .then(response => response.json())
+                            .then(data => {
+                                const select = document.getElementById('genreSelect');
+                                data.forEach(item => {
+                                    const option = document.createElement('option');
+                                    option.value = item; // Assuming item has an id
+                                    option.textContent = item; // Assuming item has a name
+                                    select.appendChild(option);
+                                });
+                            })
+                            .catch(error => console.error('Error fetching genres:', error));
+                    });
+                </script> -->
+            </div>
+            <div class="col-sm-4">
+                <select id="yearSelect" class="form-control" onchange="filterMovies()">
+                    <option value="">All Years</option>
+                    {% for item in years %}
+                    <!-- <option value="{{ item }}">{{ item }}</option> -->
+                    <option value="{{ item._id }}" {% if item._id == filters[1] %}selected{% endif %}>{{ item._id }}</option>
+                {% endfor %}
+                </select>
+            </div>
+            <div class="col-sm-4">
+                <select id="ratingSelect" class="form-control" onchange="filterMovies()">
+                        <option value="">All Ratings</option>
+                        {% for item in ratings %}
+                        <option value="{{ item._id }}" {% if item._id == filters[2] %}selected{% endif %}>{{ item._id }}</option>
+                    {% endfor %}
+                    </select>
+            </div>
+        </div>
         <script>
             function filterMovies() {
+                let returnString ="";
                 const selectedGenre = document.getElementById('genreSelect').value;
+                selectedGenre ? returnString += "genre="+selectedGenre : ""
                 const selectedYear = document.getElementById('yearSelect').value;
+                selectedYear? returnString += "&year="+selectedYear : ""
+                const selectedRating = document.getElementById('ratingSelect').value;
+                selectedRating? returnString += "&rating="+selectedRating :""
                 //TODO - Rebulld this query
-                const url =  `/search?genre=${selectedGenre}&year=${selectedYear}` 
+                 const url = "/search?"+returnString
+                // const url = `/search?genre=${selectedGenre}&year=${selectedYear}&rating=${selectedRating}`
                 window.location.href = url;
             }
         </script>
-    
+
 
         <div class="row">
             {% for item in data[0] %}
-                <div class="col-md-3">
-                    <div class="item-card" id={{item._id}} onclick="window.location='{{ url_for('main.film_details', film_id=item._id) }}'" style="cursor: pointer;">
-                        <img src="{{ item.poster }}" alt="{{ item.title }}">
-                        <div class="item-details">
-                            <h5>{{ item.title }}</h5>
-                            <div class="row"><div class="col-6"><button style="float:left" class="btn btn-primary">   {{ item.year }} </button></div><div class="col-6"><button class="btn btn-info" style="float:right"> {{ item.rated }} </button></div></div>
-                            <p style="text-align:center">Rating: {{ item.imdb.rating }}</p>
+            <div class="col-md-3">
+                <div class="item-card" id={{item._id}}
+                    onclick="window.location='{{ url_for('main.film_details', film_id=item._id) }}'"
+                    style="cursor: pointer;">
+                    <img src="{{ item.poster }}" alt="{{ item.title }}">
+                    <div class="item-details">
+                        <h5>{{ item.title }}</h5>
+                        <div class="row">
+                            <div class="col-6"><button style="float:left" class="btn btn-primary"> {{ item.year }}
+                                </button></div>
+                            <div class="col-6"><button class="btn btn-info" style="float:right"> {{ item.rated }}
+                                </button></div>
                         </div>
+                        <p style="text-align:center">Rating: {{ item.imdb.rating }}</p>
                     </div>
                 </div>
+            </div>
             {% endfor %}
         </div>
     </div>
@@ -91,4 +144,5 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
 </body>
+
 </html>

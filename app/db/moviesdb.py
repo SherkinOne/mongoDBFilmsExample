@@ -19,7 +19,7 @@ from bson.errors import InvalidId
 
  
 def get_db():
-    connection_string = 
+    connection_string = "mongodb://localhost:27017/"
     db = MongoClient(connection_string).sample_mflix 
     # if 'sample_mflix' not in g:
     #     print("Noit")
@@ -157,6 +157,100 @@ def build_query_sort_project(filters):
 
     return query, sort, project
 
+def build_query_sort_project_for_search(filters):
+    """
+    Builds the `query` predicate, `sort` and `projection` attributes for a given
+    filters dictionary.
+    """
+    query = {}
+    # The field "tomatoes.viewer.numReviews" only exists in the movies we want
+    # to display on the front page of MFlix, because they are famous or
+    # aesthetically pleasing. When we sort on it, the movies containing this
+    # field will be displayed at the top of the page.
+    sort = [("tomatoes.viewer.numReviews", -1)]
+    project = None
+    genreSearch=""
+    yearSearch=""
+    ratingSearch=""
+    query_conditions = []
+
+# Check each filter and add to the query conditions if not None
+    if filters[0] is not None:
+        genreSearch = {"genres": {"$in": [filters[0]]}}
+        query_conditions.append(genreSearch)
+
+    if filters[1] is not None:
+        yearSearch = {"year": filters[1]}
+        query_conditions.append(yearSearch)
+
+    if filters[2] is not None:
+        ratingSearch = {"rated": filters[2]}
+        query_conditions.append(ratingSearch)
+
+# Construct the final query using $and operator if there are conditions
+    if query_conditions:
+        query = {"$and": query_conditions}
+    else:
+        query = {}  # No filters applied, can also be adjusted as needed
+
+    return query, sort, project
+
+
+def build_query_sort_project_for_graph(filters):
+    """
+    Builds the `query` predicate, `sort` and `projection` attributes for a given
+    filters dictionary.
+    """
+    query = {}
+    # The field "tomatoes.viewer.numReviews" only exists in the movies we want
+    # to display on the front page of MFlix, because they are famous or
+    # aesthetically pleasing. When we sort on it, the movies containing this
+    # field will be displayed at the top of the page.
+   
+    if filters:
+        if  filters=="genres":
+             query = [
+                 {"$match" : {"year" : {"$gte" : 1999}}},{ 
+        '$unwind': {
+            'path': '$genres'
+        }
+    }, {
+        '$group': {
+            '_id': {
+                'year': '$year', 
+                'genre': '$genres'
+            }, 
+
+            'count': {
+                '$sum': 1
+            }
+        }
+    },{
+            "$project" : {
+        
+            '_id': 0, 
+            'year': '$_id.year', 
+            'genre': '$_id.genre', 
+            'count': 1
+        }
+    }, {
+        "$sort" : { "genre" : 1}
+    }]
+        elif "cast" in filters:
+            query = {"cast": {"$in": filters["cast"]}}
+
+            """
+            Ticket: Text and Subfield Search
+
+            Given a genre in the "filters" object, construct a query that
+            searches MongoDB for movies with that genre.
+            """
+
+            # TODO: Text and Subfield Search
+            # Construct a query that will search for the chosen genre.
+            query = {}
+    return query
+
 
 def get_movies(filters, page, movies_per_page):
     """
@@ -174,6 +268,35 @@ def get_movies(filters, page, movies_per_page):
     """
  
     query, sort, project = build_query_sort_project(filters)
+    if project:
+        cursor = db.movies.find(query, project).sort(sort)
+    else:
+        cursor = db.movies.find(query).sort(sort)
+  
+    total_num_movies = 0
+    if page == 0:
+        total_num_movies = db.movies.count_documents(query)
+ 
+    movies = cursor.limit(movies_per_page)
+
+    return (list(movies), total_num_movies)
+
+def get_movies_from_search(filters, page, movies_per_page):
+    """
+    Returns a cursor to a list of movie documents.
+
+    Based on the page number and the number of movies per page, the result may
+    be skipped and limited.
+
+    The `filters` from the API are passed to the `build_query_sort_project`
+    method, which constructs a query, sort, and projection, and then that query
+    is executed by this method (`get_movies`).
+
+    Returns 2 elements in a tuple: (movies, total_num_movies)
+    
+    """
+ 
+    query, sort, project = build_query_sort_project_for_search(filters)
     if project:
         cursor = db.movies.find(query, project).sort(sort)
     else:
@@ -205,6 +328,7 @@ def get_movie(id):
           
         ]
         movie = db.movies.aggregate(pipeline).next()
+        print(movie)
         return movie
 
     # TODO: Error Handling
@@ -225,6 +349,53 @@ def get_all_genres():
         {"$unwind": "$genres"},
         {"$group": {"_id": None, "genres": {"$addToSet": "$genres"}}}
     ]))[0]["genres"]
+
+
+def get_all_years():
+    """
+    Returns list of all years in the database.
+
+    """
+    return  list(db.movies.aggregate([
+    {
+        '$match': {
+            'year': {
+                '$type': 16
+            }
+        }
+    }, {
+        '$group': {
+            '_id': '$year'
+        }
+    }, {
+        '$sort': {
+            '_id': 1
+        }
+    }
+]))
+
+
+def get_all_ratings():
+    """
+    Returns list of all years in the database.
+
+    """
+    return  list(db.movies.aggregate([
+    {
+        '$match': {
+            'rated': { "$ne" :
+                None}
+            }
+    }, {
+        '$group': {
+            '_id': '$rated'
+        }
+    }, {
+        '$sort': {
+            '_id': 1
+        }
+    }
+]))
 
 
 """
@@ -289,14 +460,15 @@ def get_actor(actorName):
     Given a actor name find all the films for that actor
     """
     try:
-
         pipeline = [
             {
-               "$match": {"cast": {"$in": actorName}}
+               "$match": {"cast": {"$in": [actorName]}}
             },
+            {
+                "$project" : {"title" : 1, "year" : 1, "rated" : 1}
+            }
         ]
-
-        movies = db.movies.aggregate(pipeline).next()
+        movies = db.movies.aggregate(pipeline) 
         return movies
 
     # TODO: Error Handling
@@ -308,3 +480,28 @@ def get_actor(actorName):
     except Exception as e:
         return {}
 
+
+def get_data_for_graph(filters):
+    """
+    Returns a cursor to a list of movie documents.
+
+    Based on the page number and the number of movies per page, the result may
+    be skipped and limited.
+
+    The `filters` from the API are passed to the `build_query_sort_project`
+    method, which constructs a query, sort, and projection, and then that query
+    is executed by this method (`get_movies`).
+
+    Returns 2 elements in a tuple: (movies, total_num_movies)
+    
+    """
+    query  = build_query_sort_project_for_graph(filters)
+    
+    if query:
+        cursor = db.movies.aggregate(query)
+    #     # , project).sort(sort)
+    # else:
+    #     cursor = db.movies.find(query).sort(sort)
+  
+
+    return (list(cursor))
