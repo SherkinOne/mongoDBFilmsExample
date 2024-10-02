@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Search Movies</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+
+  <style>
+    .item-card {
+      margin: 15px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+
+    .item-card img {
+      width: 100%;
+      height: auto;
+    }
+
+    .item-details {
+      padding: 15px;
+    }
+  </style>
+</head>
+
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <a class="navbar-brand" href="/">My Movie App</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
+      aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item">
+          <a class="nav-link" href="/">Home</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/search">Search</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/graphs">Graphs</a>
+        </li>
+      </ul>
+    </div>
+  </nav>
+  <h1 style="text-align : center">Films </h1>
+  <section>
+    <div class="row">
+      <div class="col-sm-3">
+        <label for="dataSelector">Select Category:</label>
+        <select id="dataSelector">
+          <option value="selectGenreList" selected>Genres</option>
+          <option value="selectCountriesList">Countries</option>
+          <option value="selectRatingList">Ratings</option>
+          <option value="selectActorsList">Actors</option>
+          <option value="selectWordsInput"> Keywords</option>
+          <!-- Add more categories as needed -->
+        </select>
+      </div>
+
+      <div class="col-sm-1" id="selectDLLs">
+        <label style="display:inline"> Choose items</label>
+      </div>
+      <div class="col-sm-6" style="width: 100%">
+        <div id="selectActorsList" style="display:none" class="selectListDiv">
+          <select id="actorsList" class="selectList" name="actors[]" multiple="multiple">
+            {% for item in actors %}
+            <option value="{{ item }}">{{ item }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div id="selectGenreList" class="selectListDiv">
+          <select id="genreList" class="selectList" name="genre[]" multiple="multiple">
+            {% for item in genres %}
+            <option value="{{ item }}">{{ item }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div id="selectCountriesList" style="display:none" class="selectListDiv">
+          <select id="countriesList" class="selectList" name="countries[]" multiple="multiple" style="display:none">
+            {% for item in countries %}
+            <option value="{{ item }}">{{ item._id }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div id="selectRatingList" style="display:none" class="selectListDiv">
+          <select id="ratingList" class="selectList" name="ratings[]" multiple="multiple" style="display:none">
+            {% for item in ratings %}
+            <option value="{{ item._id }}">{{ item._id }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div id="selectWordsInput" style="display:none" class="selectListDiv">
+          <input class="selectInput" id="wordsInputText" />
+        </div>
+      </div>
+      <div class="col-sm-2"><button id="searchForItems" class="btn btn-primary">Search</button></div>
+    </div>
+    <div class="row sliderRow">
+      <div class="slider-container">
+        <input type="range" id="minRange" class="slider" min="1950" max="1985" value="1950" step="1">
+        <input type="range" id="maxRange" class="slider" min="1986" max="2020" value="2020" step="1">
+      </div>
+    </div>
+    <div class="row sliderRow">
+    <div class="value-display">
+      Selected Range: <span id="minValue">1950</span> - <span id="maxValue">2020</span>
+    </div>
+</div>
+  </section>
+  <section>
+
+    <canvas id="myChart" width="100%" height="200"></canvas>
+  </section>
+  <script>
+    const ctx = document.getElementById("myChart").getContext("2d");
+    let myChart;
+    $(document).ready(function () {
+      document
+        .getElementById("dataSelector")
+        .addEventListener("change", function () {
+          const selectedValue = this.value;
+          // fetchData(selectedValue);
+          $(".selectListDiv").hide();
+          $("#" + selectedValue).show();
+        });
+
+
+      $("#searchForItems").on("click", function () {
+        console.log(this)
+        const catSelct = document.getElementById("dataSelector").value
+        console.log(catSelct)
+
+        let values;
+        let cateogry = catSelct.split("List")[0]
+
+        switch (catSelct) {
+          case "selectGenreList":
+            values = $('#genreList').val()
+            break
+          case "selectCountriesList":
+            values = $('#countriesList').val()
+            break
+          case "selectRatingList":
+            values = $('#ratingList').val()
+            break;
+          case "selectActorsList":
+            values = $('#actorsList').val()
+            break
+          case "selectWordsInput":
+            values = $('#wordInput').val()
+            category = "words"
+            break;
+        }
+        fetchData(cateogry, values)
+      })
+
+
+      $('#genreList').select2({
+        tags: true,
+        placeholder: "Select genres",
+        allowClear: true,
+        tokenSeparators: [',', ' '],
+        width: '100%'
+      });
+      $('#countriesList').select2({
+        tags: true,
+        placeholder: "Select countries",
+        allowClear: true,
+        tokenSeparators: [',', ' '],
+        width: '100%'
+      });
+
+      $('#actorsList').select2({
+        tags: true,
+        placeholder: "Select actors",
+        allowClear: true,
+        tokenSeparators: [',', ' '],
+        width: '100%'
+      });
+
+      $('#ratingList').select2({
+        tags: true,
+        placeholder: "Select ratings",
+        allowClear: true,
+        tokenSeparators: [',', ' '],
+        width: '100%'
+      });
+
+    });
+    function fetchData(selectedCategory, values) {
+      const maxYear = $("#maxRange").val()
+      const minYear = $("#minRange").val()
+      valueString = values.toString()
+
+      const dataToSend = {
+        category: selectedCategory,
+        values: valueString,
+        maxYear: maxYear,
+        minYear: minYear
+      };
+
+      console.log(dataToSend)
+      fetch("/graphUpdate", {
+        method: 'POST',
+        headers: {
+        'Content-Type': 'application/json', // Specify the content type
+    },
+        body: JSON.stringify(dataToSend)
+      })
+        // fetch("/graphdata?category=" + selectedCategory + "&values=" + jsonData)
+        .then((response) => response.json())
+        .then((data) => {
+          if (myChart) {
+            myChart.destroy(); // Destroy previous chart instance
+          }
+          // Assuming results is an array of objects
+          const datasets = [];
+          const colors = []; // Define your colors array if needed
+          switch (document.getElementById("dataSelector").value) {
+            case "selectGenre":
+              for (const genreCount of data) {
+                const label = genreCount["_id"];
+                const yearCounts = [];
+
+                for (let year = 2000; year <= 2015; year++) {
+                  const filteredForYear = genreCount.years.filter(
+                    (entry) => entry.year === year
+                  );
+                  // Check if there are any entries for the year
+                  if (filteredForYear.length > 0) {
+                    // Assuming you want to count occurrences; adjust as necessary
+                    yearCounts.push(filteredForYear[0].count);
+                  } else {
+                    yearCounts.push(0);
+                  }
+                }
+
+                datasets.push({
+                  label: label, // Label for each dataset
+                  data: yearCounts, // Data from the count list
+                  // backgroundColor: colors[idx % colors.length] // Uncomment to cycle through colors if needed
+                });
+              }
+
+              break;
+
+            case "selectCountries":
+              for (const countryCount of data) {
+                const label = countryCount["_id"];
+                const yearCounts = [];
+
+                for (let year = 2000; year <= 2015; year++) {
+                  const filteredForYear = countryCount.years.filter(
+                    (entry) => entry.year === year
+                  );
+                  // Check if there are any entries for the year
+                  if (filteredForYear.length > 0) {
+                    // Assuming you want to count occurrences; adjust as necessary
+                    yearCounts.push(filteredForYear[0].count);
+                  } else {
+                    yearCounts.push(0);
+                  }
+                }
+
+                datasets.push({
+                  label: label, // Label for each dataset
+                  data: yearCounts, // Data from the count list
+                  // backgroundColor: colors[idx % colors.length] // Uncomment to cycle through colors if needed
+                });
+              }
+
+              break;
+
+          }//end of swtich
+          const yearLabel = [];
+          for (let year = 2000; year <= 2015; year++) {
+            yearLabel.push(year);
+          }
+          myChart = new Chart(ctx, {
+            type: "bar",
+            data: {
+              labels: yearLabel,
+
+              datasets: datasets,
+            },
+            options: {
+              responsive: true,
+              scales: {
+                x: {
+                  stacked: true,
+                },
+                y: {
+                  stacked: true,
+                  beginAtZero: true,
+                },
+              },
+              plugins: {
+                title: {
+                  display: true,
+                  text: "Data",
+                },
+              },
+            },
+          });
+        });
+    }
+
+    const minRange = document.getElementById('minRange');
+    const maxRange = document.getElementById('maxRange');
+    const minValueDisplay = document.getElementById('minValue');
+    const maxValueDisplay = document.getElementById('maxValue');
+
+    // Update the display values when the sliders are moved
+    minRange.addEventListener('input', function () {
+      if (parseInt(minRange.value) > parseInt(maxRange.value)) {
+        minRange.value = maxRange.value; // Prevent overlap
+      }
+      minValueDisplay.textContent = minRange.value; // Update minimum value display
+    });
+
+    maxRange.addEventListener('input', function () {
+      if (parseInt(maxRange.value) < parseInt(minRange.value)) {
+        maxRange.value = minRange.value; // Prevent overlap
+      }
+      maxValueDisplay.textContent = maxRange.value; // Update maximum value display
+    });
+  </script>
+
+  <style>
+    .slider-container {
+      position: relative;
+      width: 80%;
+      height: 50px;
+      padding-left: 10%;
+      padding-right: 10%;
+    }
+
+    .slider {
+      -webkit-appearance: none;
+      height: 10px;
+      background: #ddd;
+      outline: none;
+      opacity: 0.7;
+      transition: opacity .2s;
+      display: inline;
+    }
+
+    .slider:hover {
+      opacity: 1;
+    }
+
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      background: #04AA6D;
+      cursor: pointer;
+    }
+
+    .slider::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      background: #04AA6D;
+      cursor: pointer;
+    }
+
+    .value-display {
+      margin-top: 10px;
+    }
+
+    .sliderRow {
+      text-align: center;
+    }
+  </style>
+
+</body>
+
+</html>

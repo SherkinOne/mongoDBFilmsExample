@@ -84,11 +84,9 @@
             if (myChart) {
               myChart.destroy(); // Destroy previous chart instance
             }
-            console.log(data);
             // Assuming results is an array of objects
             const datasets = [];
             const colors = []; // Define your colors array if needed
-            console.log(document.getElementById("dataSelector").value)
             switch ( document.getElementById("dataSelector").value)
             {
             case "genres" :

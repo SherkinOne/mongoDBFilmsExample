@@ -134,7 +134,8 @@ def build_query_sort_project(filters):
     # aesthetically pleasing. When we sort on it, the movies containing this
     # field will be displayed at the top of the page.
     sort = [("tomatoes.viewer.numReviews", -1)]
-    project = None
+    project=""
+    # project = {"$skip" : 20}
     if filters:
         if "text" in filters:
             query = {"$text": {"$search": filters["text"]}}
@@ -195,6 +196,223 @@ def build_query_sort_project_for_search(filters):
         query = {}  # No filters applied, can also be adjusted as needed
 
     return query, sort, project
+
+
+
+
+def get_movies( page, movies_per_page):
+    """
+    Returns a cursor to a list of movie documents.
+    """
+ 
+    sort = [("tomatoes.viewer.numReviews", -1)]
+
+    cursor = db.movies.find().sort(sort)
+    
+    movies = cursor.skip(page*movies_per_page).limit(movies_per_page)
+
+    total_num_movies = db.movies.count_documents({})
+    
+    return (list(movies), total_num_movies)
+
+def get_movies_from_search(filters, page, movies_per_page):
+    """
+    Returns a cursor to a list of movie documents.
+
+    Based on the page number and the number of movies per page, the result may
+    be skipped and limited.
+
+    The `filters` from the API are passed to the `build_query_sort_project`
+    method, which constructs a query, sort, and projection, and then that query
+    is executed by this method (`get_movies`).
+
+    Returns 2 elements in a tuple: (movies, total_num_movies)
+    
+    """
+ 
+    query, sort, project = build_query_sort_project_for_search(filters)
+    if project:
+        cursor = db.movies.find(query, project).sort(sort)
+    else:
+        cursor = db.movies.find(query).sort(sort)
+    total_num_movies = 0
+    if page == 0:
+        total_num_movies = db.movies.count_documents(query)
+    else :
+        movies = cursor.skip(page*movies_per_page)
+ 
+    movies = cursor.limit(movies_per_page)
+
+    return (list(movies), total_num_movies)
+
+
+def get_movie(id):
+    """
+    Given a movie ID, return a movie with that ID, with the comments for that
+    movie embedded in the movie document. The comments are joined from the
+    comments collection using expressive $lookup.
+    """
+    try:
+        pipeline = [
+            {
+                "$match": {
+                    "_id": ObjectId(id)
+                },
+            },
+          
+        ]
+        movie = db.movies.aggregate(pipeline).next()
+        return movie
+
+    # TODO: Error Handling
+    # If an invalid ID is passed to `get_movie`, it should return None.
+    except (StopIteration) as _:
+
+        return None
+
+    except Exception as e:
+        return {}
+
+
+def get_all_genres():
+    """
+    Returns list of all genres in the database.
+    """
+    return list(db.movies.aggregate([
+        {"$unwind": "$genres"},
+        {"$group": {"_id": None, "genres": {"$addToSet": "$genres"}}}
+    ]))[0]["genres"]
+
+
+def get_all_years():
+    """
+    Returns list of all years in the database.
+
+    """
+    return  list(db.movies.aggregate([
+    {
+        '$match': {
+            'year': {
+                '$type': 16
+            }
+        }
+    }, {
+        '$group': {
+            '_id': '$year'
+        }
+    }, {
+        '$sort': {
+            '_id': 1
+        }
+    }
+]))
+
+
+def get_all_ratings():
+    """
+    Returns list of all ratings in the database.
+
+    """
+    return  list(db.movies.aggregate([
+    {
+        '$match': {
+            'rated': { "$ne" :
+                None}
+            }
+    }, {
+        '$group': {
+            '_id': '$rated'
+        }
+    }, {
+        '$sort': {
+            '_id': 1
+        }
+    }
+]))
+
+
+"""
+Ticket: Create/Update Comments
+
+For this ticket, you will need to implement the following two methods:
+
+- add_comment
+- update_comment
+
+You can find these methods below this docstring. Make sure to read the comments
+to better understand the task.
+"""
+
+
+def add_comment(movie_id,name , email, comment, date):
+    """
+    Inserts a comment into the comments collection, with the following fields:
+
+    - "name"
+    - "email"
+    - "movie_id"
+    - "text"
+    - "date"
+
+    Name and email must be retrieved from the "user" object.
+    """
+    
+    comment_doc = { 'movie_id' : movie_id, 'name' : name, 'email' : email,'text' : comment, 'date' : date}
+    return db.comments.insert_one(comment_doc)
+
+
+def update_comment(comment_id, user_email, text, date):
+    """
+    Updates the comment in the comment collection. Queries for the comment
+    based by both comment _id field as well as the email field to doubly ensure
+    the user has permission to edit this comment.
+    """
+    # TODO: Create/Update Comments
+    # Use the user_email and comment_id to select the proper comment, then
+    # update the "text" and "date" of the selected comment.
+    response = db.comments.update_one(
+        { "comment_id": comment_id },
+        { "$set": { "text ": text, "date" : date } }
+    )
+
+    return response
+
+
+def delete_comment(comment_id, user_email):
+    """
+    Given a user's email and a comment ID, deletes a comment from the comments
+    collection
+    """
+
+    response = db.comments.delete_one( { "_id": ObjectId(comment_id) } )
+    return response
+
+
+def get_actor(actorName):
+    """
+    Given a actor name find all the films for that actor
+    """
+    try:
+        pipeline = [
+            {
+               "$match": {"cast": {"$in": [actorName]}}
+            },
+            {
+                "$project" : {"title" : 1, "year" : 1, "rated" : 1}
+            }
+        ]
+        movies = db.movies.aggregate(pipeline) 
+        return movies
+
+    # TODO: Error Handling
+    # If an invalid ID is passed to `get_movie`, it should return None.
+    except (StopIteration) as _:
+
+        return None
+
+    except Exception as e:
+        return {}
+
 
 
 def build_query_sort_project_for_graph(filters):
@@ -301,235 +519,6 @@ def build_query_sort_project_for_graph(filters):
     return query
 
 
-def get_movies(filters, page, movies_per_page):
-    """
-    Returns a cursor to a list of movie documents.
- 
-    Based on the page number and the number of movies per page, the result may
-    be skipped and limited.
-
-    The `filters` from the API are passed to the `build_query_sort_project`
-    method, which constructs a query, sort, and projection, and then that query
-    is executed by this method (`get_movies`).
-
-    Returns 2 elements in a tuple: (movies, total_num_movies)
-    
-    """
- 
-    query, sort, project = build_query_sort_project(filters)
-    if project:
-        cursor = db.movies.find(query, project).sort(sort)
-    else:
-        cursor = db.movies.find(query).sort(sort)
-  
-    total_num_movies = 0
-    if page == 0:
-        total_num_movies = db.movies.count_documents(query)
- 
-    movies = cursor.limit(movies_per_page)
-
-    return (list(movies), total_num_movies)
-
-def get_movies_from_search(filters, page, movies_per_page):
-    """
-    Returns a cursor to a list of movie documents.
-
-    Based on the page number and the number of movies per page, the result may
-    be skipped and limited.
-
-    The `filters` from the API are passed to the `build_query_sort_project`
-    method, which constructs a query, sort, and projection, and then that query
-    is executed by this method (`get_movies`).
-
-    Returns 2 elements in a tuple: (movies, total_num_movies)
-    
-    """
- 
-    query, sort, project = build_query_sort_project_for_search(filters)
-    if project:
-        cursor = db.movies.find(query, project).sort(sort)
-    else:
-        cursor = db.movies.find(query).sort(sort)
-  
-    total_num_movies = 0
-    if page == 0:
-        total_num_movies = db.movies.count_documents(query)
- 
-    movies = cursor.limit(movies_per_page)
-
-    return (list(movies), total_num_movies)
-
-
-def get_movie(id):
-    """
-    Given a movie ID, return a movie with that ID, with the comments for that
-    movie embedded in the movie document. The comments are joined from the
-    comments collection using expressive $lookup.
-    """
-    try:
-
-        pipeline = [
-            {
-                "$match": {
-                    "_id": ObjectId(id)
-                },
-            },
-          
-        ]
-        movie = db.movies.aggregate(pipeline).next()
-        print(movie)
-        return movie
-
-    # TODO: Error Handling
-    # If an invalid ID is passed to `get_movie`, it should return None.
-    except (StopIteration) as _:
-
-        return None
-
-    except Exception as e:
-        return {}
-
-
-def get_all_genres():
-    """
-    Returns list of all genres in the database.
-    """
-    return list(db.movies.aggregate([
-        {"$unwind": "$genres"},
-        {"$group": {"_id": None, "genres": {"$addToSet": "$genres"}}}
-    ]))[0]["genres"]
-
-
-def get_all_years():
-    """
-    Returns list of all years in the database.
-
-    """
-    return  list(db.movies.aggregate([
-    {
-        '$match': {
-            'year': {
-                '$type': 16
-            }
-        }
-    }, {
-        '$group': {
-            '_id': '$year'
-        }
-    }, {
-        '$sort': {
-            '_id': 1
-        }
-    }
-]))
-
-
-def get_all_ratings():
-    """
-    Returns list of all years in the database.
-
-    """
-    return  list(db.movies.aggregate([
-    {
-        '$match': {
-            'rated': { "$ne" :
-                None}
-            }
-    }, {
-        '$group': {
-            '_id': '$rated'
-        }
-    }, {
-        '$sort': {
-            '_id': 1
-        }
-    }
-]))
-
-
-"""
-Ticket: Create/Update Comments
-
-For this ticket, you will need to implement the following two methods:
-
-- add_comment
-- update_comment
-
-You can find these methods below this docstring. Make sure to read the comments
-to better understand the task.
-"""
-
-
-def add_comment(movie_id,name , email, comment, date):
-    """
-    Inserts a comment into the comments collection, with the following fields:
-
-    - "name"
-    - "email"
-    - "movie_id"
-    - "text"
-    - "date"
-
-    Name and email must be retrieved from the "user" object.
-    """
-    
-    comment_doc = { 'movie_id' : movie_id, 'name' : name, 'email' : email,'text' : comment, 'date' : date}
-    return db.comments.insert_one(comment_doc)
-
-
-def update_comment(comment_id, user_email, text, date):
-    """
-    Updates the comment in the comment collection. Queries for the comment
-    based by both comment _id field as well as the email field to doubly ensure
-    the user has permission to edit this comment.
-    """
-    # TODO: Create/Update Comments
-    # Use the user_email and comment_id to select the proper comment, then
-    # update the "text" and "date" of the selected comment.
-    response = db.comments.update_one(
-        { "comment_id": comment_id },
-        { "$set": { "text ": text, "date" : date } }
-    )
-
-    return response
-
-
-def delete_comment(comment_id, user_email):
-    """
-    Given a user's email and a comment ID, deletes a comment from the comments
-    collection
-    """
-
-    response = db.comments.delete_one( { "_id": ObjectId(comment_id) } )
-    return response
-
-
-def get_actor(actorName):
-    """
-    Given a actor name find all the films for that actor
-    """
-    try:
-        pipeline = [
-            {
-               "$match": {"cast": {"$in": [actorName]}}
-            },
-            {
-                "$project" : {"title" : 1, "year" : 1, "rated" : 1}
-            }
-        ]
-        movies = db.movies.aggregate(pipeline) 
-        return movies
-
-    # TODO: Error Handling
-    # If an invalid ID is passed to `get_movie`, it should return None.
-    except (StopIteration) as _:
-
-        return None
-
-    except Exception as e:
-        return {}
-
-
 def get_data_for_graph(filters):
     """
     Returns a cursor to a list of movie documents.
@@ -544,6 +533,123 @@ def get_data_for_graph(filters):
     Returns 2 elements in a tuple: (movies, total_num_movies)
     
     """
+    query  = build_query_sort_project_for_graph(filters)
+    
+    if query:
+        cursor = db.movies.aggregate(query)
+    #     # , project).sort(sort)
+    # else:
+    #     cursor = db.movies.find(query).sort(sort)
+  
+
+    return (list(cursor))
+
+
+def build_query_sort_project_for_graph(filters):
+    """
+    Builds the `query` predicate, `sort` and `projection` attributes for a given
+    filters dictionary.
+    """
+    query = {}
+    # The field "tomatoes.viewer.numReviews" only exists in the movies we want
+    # to display on the front page of MFlix, because they are famous or
+    # aesthetically pleasing. When we sort on it, the movies containing this
+    # field will be displayed at the top of the page.
+   
+    if filters:
+        if  filters=="genres":
+             query = [
+    {
+        '$match': {
+            'year': {
+                '$gte': 1999
+            }
+        }
+    }, {
+        '$unwind': {
+            'path': '$genres'
+        }
+    }, {
+        '$group': {
+            '_id': {
+                'year': '$year', 
+                'genre': '$genres'
+            }, 
+            'count': {
+                '$sum': 1
+            }
+        }
+    }, {
+        '$group': {
+            '_id': '$_id.genre', 
+            'years': {
+                '$push': {
+                    'year': '$_id.year', 
+                    'count': '$count'
+                }
+            }
+        }
+    }, {
+        '$sort': {
+             "_id":  1
+        }
+    }
+]
+        elif filters=="countries" :
+            query = [
+    {
+        '$match': {
+            'year': {
+                '$gte': 1999
+            }
+        }
+    }, {
+        '$unwind': {
+            'path': '$countries'
+        }
+    }, {
+        '$group': {
+            '_id': {
+                'year': '$year', 
+                'country': '$countries'
+            }, 
+            'count': {
+                '$sum': 1
+            }
+        }
+    }, {
+        '$group': {
+            '_id': '$_id.country', 
+            'years': {
+                '$push': {
+                    'year': '$_id.year', 
+                    'count': '$count'
+                }
+            }
+        }
+    }, {
+        '$sort': {
+             "_id": 1
+        }
+    }
+]
+        elif "cast" in filters:
+            query = {"cast": {"$in": filters["cast"]}}
+
+            """
+            Ticket: Text and Subfield Search
+
+            Given a genre in the "filters" object, construct a query that
+            searches MongoDB for movies with that genre.
+            """
+
+            # TODO: Text and Subfield Search
+            # Construct a query that will search for the chosen genre.
+            query = {}
+    return query
+
+def get_data_for_graph_updated(minYear, maxYear, category, searchValues):
+   """ Take years, catgorys and return query relative to that data"""
     query  = build_query_sort_project_for_graph(filters)
     
     if query:
