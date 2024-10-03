@@ -19,8 +19,8 @@ from bson.errors import InvalidId
 
  
 def get_db():
-    # connection_string = "mongodb://localhost:27017/"
-    connection_string = "mongodb+srv://admin:t4pwM36QyAe4F9p!@coursecluster.pzjcy.mongodb.net/?retryWrites=true&w=majority&appName=courseCluster"
+    connection_string = "mongodb://localhost:27017/"
+    
     db = MongoClient(connection_string).sample_mflix 
     # if 'sample_mflix' not in g:
     #     print("Noit")
@@ -545,24 +545,17 @@ def get_data_for_graph(filters):
     return (list(cursor))
 
 
-def build_query_sort_project_for_graph(filters):
-    """
-    Builds the `query` predicate, `sort` and `projection` attributes for a given
-    filters dictionary.
-    """
+def get_data_for_graph_updated(minYear, maxYear, category, searchValues):
+   #""" Take years, catgorys and return query relative to that data"""
+    
     query = {}
-    # The field "tomatoes.viewer.numReviews" only exists in the movies we want
-    # to display on the front page of MFlix, because they are famous or
-    # aesthetically pleasing. When we sort on it, the movies containing this
-    # field will be displayed at the top of the page.
-   
-    if filters:
-        if  filters=="genres":
+    if category:
+        if  category=="selectGenre":
              query = [
     {
         '$match': {
             'year': {
-                '$gte': 1999
+                '$gte': int(minYear)
             }
         }
     }, {
@@ -595,7 +588,7 @@ def build_query_sort_project_for_graph(filters):
         }
     }
 ]
-        elif filters=="countries" :
+        elif category=="countries" :
             query = [
     {
         '$match': {
@@ -633,30 +626,19 @@ def build_query_sort_project_for_graph(filters):
         }
     }
 ]
-        elif "cast" in filters:
-            query = {"cast": {"$in": filters["cast"]}}
+        # # elif "cast" in filters:
+        #     query = {"cast": {"$in": filters["cast"]}}
 
-            """
-            Ticket: Text and Subfield Search
+        #     """
+        #     Ticket: Text and Subfield Search
 
-            Given a genre in the "filters" object, construct a query that
-            searches MongoDB for movies with that genre.
-            """
+        #     Given a genre in the "filters" object, construct a query that
+        #     searches MongoDB for movies with that genre.
+        #     """
 
-            # TODO: Text and Subfield Search
-            # Construct a query that will search for the chosen genre.
-            query = {}
-    return query
-
-def get_data_for_graph_updated(minYear, maxYear, category, searchValues):
-   """ Take years, catgorys and return query relative to that data"""
-    query  = build_query_sort_project_for_graph(filters)
-    
-    if query:
-        cursor = db.movies.aggregate(query)
-    #     # , project).sort(sort)
-    # else:
-    #     cursor = db.movies.find(query).sort(sort)
-  
-
+        #     # TODO: Text and Subfield Search
+        #     # Construct a query that will search for the chosen genre.
+        #     query = {}
+        if query:
+            cursor = db.movies.aggregate(query)
     return (list(cursor))

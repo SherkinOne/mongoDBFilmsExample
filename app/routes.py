@@ -95,9 +95,9 @@ def get_graph_update_data():
     minYear=json_data['minYear']
     
     categoryToSearch =json_data['category']
-    values=json_data['values']
+    searchValues=json_data['values']
     results=""; 
     # results =  get_data_for_graph(selected_value)
-  
+    results = get_data_for_graph_updated(minYear, maxYear, categoryToSearch, searchValues)
     return jsonify(results)
 

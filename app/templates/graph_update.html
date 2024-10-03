@@ -120,7 +120,7 @@
 </div>
   </section>
   <section>
-
+    <progress id="animationProgress" max="1" value="0" style="width: 100%"></progress>
     <canvas id="myChart" width="100%" height="200"></canvas>
   </section>
   <script>
@@ -211,7 +211,6 @@
         minYear: minYear
       };
 
-      console.log(dataToSend)
       fetch("/graphUpdate", {
         method: 'POST',
         headers: {
@@ -222,6 +221,7 @@
         // fetch("/graphdata?category=" + selectedCategory + "&values=" + jsonData)
         .then((response) => response.json())
         .then((data) => {
+          console.log(data)
           if (myChart) {
             myChart.destroy(); // Destroy previous chart instance
           }
@@ -288,6 +288,7 @@
           for (let year = 2000; year <= 2015; year++) {
             yearLabel.push(year);
           }
+          var progress = document.getElementById('animationProgress')
           myChart = new Chart(ctx, {
             type: "bar",
             data: {
@@ -297,6 +298,17 @@
             },
             options: {
               responsive: true,
+              animation: {
+                    duration: 2000,
+                    onProgress: function(animation) {
+                        progress.value = animation.currentStep / animation.numSteps;
+                    },
+                    onComplete: function(animation) {
+                        window.setTimeout(function() {
+                            progress.value = 0;
+                        }, 2000);
+                }
+            },
               scales: {
                 x: {
                   stacked: true,
